@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharma Patent Intelligence Dashboard — 49 Drugs</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #eef0f7;
+    --card: #ffffff;
+    --border: #dde2ef;
+    --accent: #0077cc;
+    --accent2: #e05a1e;
+    --accent3: #1a8c50;
+    --accent4: #c89400;
+    --text: #1a2035;
+    --muted: #6b7a9a;
+    --red: #d93025;
+    --yellow: #c89400;
+    --green: #0a8f5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,119,204,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,119,204,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  /* Header */
+  header {
+    text-align: center;
+    padding: 40px 0 30px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+    animation: fadeDown 0.6s ease both;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(0,119,204,0.08);
+    border: 1px solid rgba(0,119,204,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 5vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), #7b4fd4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 30px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.blue::before   { background: var(--accent); }
+  .stat-card.orange::before { background: var(--accent2); }
+  .stat-card.green::before  { background: var(--green); }
+  .stat-card.yellow::before { background: var(--yellow); }
+  .stat-card.purple::before { background: #7b4fd4; }
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+    animation: fadeUp 0.6s 0.15s ease both;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .filter-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: rgba(0,119,204,0.08);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .search-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    width: 100%;
+    margin-bottom: 24px;
+    outline: none;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.6s 0.18s ease both;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+  /* Table — 7 columns (removed Future Rev & Risk) */
+  .table-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fadeUp 0.6s 0.2s ease both;
+    margin-bottom: 30px;
+  }
+  .table-header-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1.1fr 1.1fr;
+    padding: 12px 20px;
+    background: rgba(0,119,204,0.04);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+  }
+  .drug-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1.1fr 1.1fr;
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(221,226,239,0.7);
+    align-items: center;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .drug-row:hover { background: rgba(0,119,204,0.03); }
+  .drug-row:last-child { border-bottom: none; }
+  .drug-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .drug-company {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .company-name { font-size: 11px; color: var(--text); }
+  .expiry-year {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .expiry-near { color: var(--red); }
+  .expiry-mid  { color: var(--yellow); }
+  .expiry-far  { color: var(--green); }
+  .revenue-val {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .muted-val { font-size: 11px; color: var(--muted); }
+  .therapy-tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .tag-onco    { background: rgba(224,90,30,0.10);  color: #b84010; border: 1px solid rgba(224,90,30,0.22); }
+  .tag-immuno  { background: rgba(0,119,204,0.09);  color: var(--accent); border: 1px solid rgba(0,119,204,0.2); }
+  .tag-cardio  { background: rgba(217,48,37,0.09);  color: #b52b20; border: 1px solid rgba(217,48,37,0.2); }
+  .tag-diabetes{ background: rgba(10,143,92,0.10);  color: #087a4a; border: 1px solid rgba(10,143,92,0.22); }
+  .tag-neuro   { background: rgba(123,79,212,0.10); color: #6040a8; border: 1px solid rgba(123,79,212,0.2); }
+  .tag-rare    { background: rgba(200,148,0,0.10);  color: var(--yellow); border: 1px solid rgba(200,148,0,0.22); }
+  .tag-vaccine { background: rgba(10,143,92,0.08);  color: var(--green); border: 1px solid rgba(10,143,92,0.2); }
+  .tag-hiv     { background: rgba(180,40,110,0.10); color: #a0206a; border: 1px solid rgba(180,40,110,0.2); }
+  .tag-ophthal { background: rgba(0,130,200,0.10);  color: #0060a8; border: 1px solid rgba(0,130,200,0.2); }
+  .tag-bone    { background: rgba(200,140,0,0.10);  color: #9a6800; border: 1px solid rgba(200,140,0,0.2); }
+  .tag-gi      { background: rgba(160,60,160,0.10); color: #8a309a; border: 1px solid rgba(160,60,160,0.2); }
+  .tag-cf      { background: rgba(0,170,130,0.10);  color: #007a5e; border: 1px solid rgba(0,170,130,0.2); }
+  .tag-dental  { background: rgba(100,110,130,0.10);color: #505870; border: 1px solid rgba(100,110,130,0.2); }
+  /* Section title */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  /* Timeline */
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 30px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .year-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .year-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .year-drug-item {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(221,226,239,0.6);
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .year-drug-item:last-of-type { border-bottom: none; }
+  .year-drug-name { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
+  .year-total {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  /* Company Exposure section */
+  .risk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 30px;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+  .risk-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .risk-company {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .risk-pct-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .risk-pct-bar-bg {
+    flex: 1;
+    height: 7px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .risk-pct-fill { height: 100%; border-radius: 99px; }
+  .risk-fill-high { background: var(--red); }
+  .risk-fill-med  { background: var(--yellow); }
+  .risk-fill-low  { background: var(--green); }
+  .risk-pct-value { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; min-width: 36px; text-align: right; }
+  .risk-drugs { font-size: 10px; color: var(--muted); }
+  .risk-drugs span { color: var(--text); }
+  /* Footer */
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 24px 0 40px;
+    border-top: 1px solid var(--border);
+    line-height: 1.8;
+  }
+  /* Result count */
+  .result-count {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(14px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .table-header-row, .drug-row {
+      grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr 1fr;
+    }
+    .col-india { display: none; }
+  }
+  @media (max-width: 640px) {
+    .table-header-row, .drug-row {
+      grid-template-columns: 2fr 1.2fr 1fr 1fr;
+    }
+    .col-segment, .col-global, .col-india, .col-company { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">⬡ Patent Intelligence</div>
+    <h1>Pharma <span>Patent Expiry</span> Dashboard</h1>
+    <p class="subtitle">49 Blockbuster Drugs · U.S. &amp; India Markets · Patent Cliff Analysis · 2025–2038</p>
+  </header>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card blue">
+      <div class="stat-label">Total Drugs</div>
+      <div class="stat-value">49</div>
+      <div class="stat-sub">Tracked globally</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Expiring ≤ 2027</div>
+      <div class="stat-value" id="stat-near">—</div>
+      <div class="stat-sub">Critical / near-term</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Expiring 2028–2030</div>
+      <div class="stat-value" id="stat-mid">—</div>
+      <div class="stat-sub">Medium-term</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Protected 2031+</div>
+      <div class="stat-value" id="stat-far">—</div>
+      <div class="stat-sub">Long-dated patents</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Oncology Drugs</div>
+      <div class="stat-value" id="stat-onco">—</div>
+      <div class="stat-sub">Largest segment</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="controls">
+    <div class="filters">
+      <button class="filter-btn active" onclick="filterDrugs('all',this)">All (49)</button>
+      <button class="filter-btn" onclick="filterDrugs('oncology',this)">Oncology</button>
+      <button class="filter-btn" onclick="filterDrugs('immunology',this)">Immunology</button>
+      <button class="filter-btn" onclick="filterDrugs('diabetes',this)">Diabetes</button>
+      <button class="filter-btn" onclick="filterDrugs('cardiovascular',this)">Cardiovascular</button>
+      <button class="filter-btn" onclick="filterDrugs('neurology',this)">Neurology</button>
+      <button class="filter-btn" onclick="filterDrugs('hiv',this)">HIV</button>
+      <button class="filter-btn" onclick="filterDrugs('vaccines',this)">Vaccines</button>
+      <button class="filter-btn" onclick="filterDrugs('ophthalmology',this)">Ophthalmology</button>
+      <button class="filter-btn" onclick="filterDrugs('other',this)">Other</button>
+    </div>
+  </div>
+
+  <input class="search-box" type="text" placeholder="🔍  Search drug name, company, or segment..." oninput="searchDrugs(this.value)">
+
+  <!-- Table — no Future Rev, no Risk -->
+  <div class="table-wrapper">
+    <div class="table-header-row">
+      <div>Drug</div>
+      <div class="col-company">Company</div>
+      <div class="col-segment">Segment</div>
+      <div>US Expiry</div>
+      <div class="col-india">India Expiry</div>
+      <div>US Revenue</div>
+      <div class="col-global">Global Revenue</div>
+    </div>
+    <div id="drug-list"></div>
+  </div>
+
+  <!-- Timeline Section -->
+  <div class="section-title">Patent Expiry Timeline — US Market</div>
+  <div class="timeline-grid" id="timeline-grid"></div>
+
+  <!-- Company Exposure -->
+  <div class="section-title">Company Exposure Analysis</div>
+  <div class="risk-grid" id="risk-grid"></div>
+
+  <div class="footer-note">
+    Data sourced from DrugPatentWatch, GlobalData, company annual reports, FDA filings, and industry analyst reports (2024–2025).<br>
+    Patent expiry windows reflect primary composition-of-matter patents; supplementary protection and litigation may extend or shorten exclusivity.<br>
+    India expiry windows reflect Indian Patent Act considerations and may differ materially from US timelines.<br>
+    <strong style="color:var(--accent)">49-Drug Portfolio Analysis — June 2026</strong>
+  </div>
+
+</div>
+
+<script>
+const drugs = [
+  { id:1,  name:"Keytruda",              company:"Merck",                   segment:"oncology",       segLabel:"Oncology",         tagCls:"tag-onco",    usExpiry:"2028",      indiaExpiry:"2028",      usRev:"$18.8B",     globalRev:"$31.7B"    },
+  { id:2,  name:"Eliquis",               company:"BMS / Pfizer",            segment:"cardiovascular", segLabel:"Cardiovascular",   tagCls:"tag-cardio",  usExpiry:"2027",      indiaExpiry:"2026",      usRev:"$7.5B",      globalRev:"$14.4B"    },
+  { id:3,  name:"Ozempic",               company:"Novo Nordisk",            segment:"diabetes",       segLabel:"Diabetes/GLP-1",   tagCls:"tag-diabetes",usExpiry:"2033",      indiaExpiry:"2026",      usRev:"$11.8B",     globalRev:"$18-19B"   },
+  { id:4,  name:"Jardiance",             company:"Boehringer / Lilly",      segment:"diabetes",       segLabel:"Diabetes/SGLT-2",  tagCls:"tag-diabetes",usExpiry:"2028",      indiaExpiry:"2025",      usRev:"$5.8B",      globalRev:"$10-11B"   },
+  { id:5,  name:"Dupixent",              company:"Sanofi / Regeneron",      segment:"immunology",     segLabel:"Immunology",       tagCls:"tag-immuno",  usExpiry:"2031-2034", indiaExpiry:"2030",      usRev:"$12-13B",    globalRev:"$15.2-17.8B"},
+  { id:6,  name:"Biktarvy",              company:"Gilead",                  segment:"hiv",            segLabel:"HIV",              tagCls:"tag-hiv",     usExpiry:"2031-2033", indiaExpiry:"2027-2028", usRev:"$11.47B",    globalRev:"$14.3B"    },
+  { id:7,  name:"Skyrizi",               company:"AbbVie",                  segment:"immunology",     segLabel:"Immunology",       tagCls:"tag-immuno",  usExpiry:"2032-2034", indiaExpiry:"2028-2030", usRev:"$11-13B",    globalRev:"$17.6B"    },
+  { id:8,  name:"Rinvoq",                company:"AbbVie",                  segment:"immunology",     segLabel:"Immunology/JAK",   tagCls:"tag-immuno",  usExpiry:"2032-2034", indiaExpiry:"2030",      usRev:"$5.8-6.2B",  globalRev:"$8.3-8.5B" },
+  { id:9,  name:"Trulicity",             company:"Eli Lilly",               segment:"diabetes",       segLabel:"Diabetes/GLP-1",   tagCls:"tag-diabetes",usExpiry:"2026-2027", indiaExpiry:"2026",      usRev:"$3.0B",      globalRev:"$4.5B"     },
+  { id:10, name:"Darzalex",              company:"Johnson & Johnson",       segment:"oncology",       segLabel:"Oncology/Hem.",    tagCls:"tag-onco",    usExpiry:"2029-2032", indiaExpiry:"2031-2033", usRev:"$8.27B",     globalRev:"$14.35B"   },
+  { id:11, name:"Xarelto",               company:"J&J / Bayer",             segment:"cardiovascular", segLabel:"Cardiovascular",   tagCls:"tag-cardio",  usExpiry:"2025-2026", indiaExpiry:"2026",      usRev:"$1.0-1.3B",  globalRev:"$5.5-6.0B" },
+  { id:12, name:"Entresto",              company:"Novartis",                segment:"cardiovascular", segLabel:"Cardiovascular",   tagCls:"tag-cardio",  usExpiry:"2025-2026", indiaExpiry:"2023-2024", usRev:"$4.0-4.5B",  globalRev:"$7.7B"     },
+  { id:13, name:"Farxiga",               company:"AstraZeneca",             segment:"diabetes",       segLabel:"Cardiometabolic",  tagCls:"tag-diabetes",usExpiry:"2025-2026", indiaExpiry:"2023",      usRev:"$3.6B",      globalRev:"$8.44B"    },
+  { id:14, name:"Prolia",                company:"Amgen",                   segment:"other",          segLabel:"Bone/Skeletal",    tagCls:"tag-bone",    usExpiry:"2025-2026", indiaExpiry:"2025-2027", usRev:"$2.7-3.0B",  globalRev:"$4.41B"    },
+  { id:15, name:"Ocrevus",               company:"Roche",                   segment:"neurology",      segLabel:"Neurology/MS",     tagCls:"tag-neuro",   usExpiry:"2026-2027", indiaExpiry:"2028-2030", usRev:"$5.0-5.5B",  globalRev:"$7.6-8.4B" },
+  { id:16, name:"Xtandi",                company:"Astellas / Pfizer",       segment:"oncology",       segLabel:"Oncology/PCa",     tagCls:"tag-onco",    usExpiry:"2026-2027", indiaExpiry:"2026-2027", usRev:"$4.4B",      globalRev:"$7.2B"     },
+  { id:17, name:"Imbruvica",             company:"AbbVie / J&J",            segment:"oncology",       segLabel:"Oncology/BTK",     tagCls:"tag-onco",    usExpiry:"2026-2027", indiaExpiry:"2026-2028", usRev:"$2.0-2.2B",  globalRev:"$4.0-4.5B" },
+  { id:18, name:"Ibrance",               company:"Pfizer",                  segment:"oncology",       segLabel:"Oncology/BC",      tagCls:"tag-onco",    usExpiry:"2027",      indiaExpiry:"2027",      usRev:"$2.5B",      globalRev:"$4.12B"    },
+  { id:19, name:"Enbrel",                company:"Amgen / Pfizer",          segment:"immunology",     segLabel:"Immunology/TNF",   tagCls:"tag-immuno",  usExpiry:"2028",      indiaExpiry:"2028-2030", usRev:"$3.3B",      globalRev:"$3.5-3.8B" },
+  { id:20, name:"Repatha",               company:"Amgen",                   segment:"cardiovascular", segLabel:"Cardiovascular",   tagCls:"tag-cardio",  usExpiry:"2029",      indiaExpiry:"2029-2030", usRev:"$1.42B",     globalRev:"$2.24B"    },
+  { id:21, name:"Genvoya",               company:"Gilead",                  segment:"hiv",            segLabel:"HIV",              tagCls:"tag-hiv",     usExpiry:"2029",      indiaExpiry:"2029",      usRev:"$1.1B",      globalRev:"$1.5-1.8B" },
+  { id:22, name:"Opdivo",                company:"Bristol Myers Squibb",    segment:"oncology",       segLabel:"Oncology/IO",      tagCls:"tag-onco",    usExpiry:"2028-2030", indiaExpiry:"2028-2030", usRev:"$5.35B",     globalRev:"$9.23B"    },
+  { id:23, name:"Trikafta",              company:"Vertex",                  segment:"other",          segLabel:"Cystic Fibrosis",  tagCls:"tag-cf",      usExpiry:"2037",      indiaExpiry:"2035-2037", usRev:"$6.3B",      globalRev:"$10.31B"   },
+  { id:24, name:"Tagrisso",              company:"AstraZeneca",             segment:"oncology",       segLabel:"Oncology/EGFR",    tagCls:"tag-onco",    usExpiry:"2031-2034", indiaExpiry:"2031-2034", usRev:"$3.1B",      globalRev:"$7.30B"    },
+  { id:25, name:"Briumvi",               company:"TG Therapeutics",         segment:"neurology",      segLabel:"Neurology/MS",     tagCls:"tag-neuro",   usExpiry:"2034",      indiaExpiry:"2034",      usRev:"$594M",      globalRev:"$616M"     },
+  { id:26, name:"Prevnar 20",            company:"Pfizer",                  segment:"vaccines",       segLabel:"Vaccines",         tagCls:"tag-vaccine", usExpiry:"2033-2034", indiaExpiry:"2033-2034", usRev:"$3.83B",     globalRev:"$6.49B"    },
+  { id:27, name:"Gardasil 9",            company:"Merck",                   segment:"vaccines",       segLabel:"Vaccines/HPV",     tagCls:"tag-vaccine", usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$1.8-2.1B",  globalRev:"$5.23B"    },
+  { id:28, name:"Cosentyx",              company:"Novartis",                segment:"immunology",     segLabel:"Immunology/IL-17", tagCls:"tag-immuno",  usExpiry:"2029-2033", indiaExpiry:"2025-2026", usRev:"$3.0-3.2B",  globalRev:"$5.4B"     },
+  { id:29, name:"Taltz",                 company:"Eli Lilly",               segment:"immunology",     segLabel:"Immunology/IL-17", tagCls:"tag-immuno",  usExpiry:"2031-2034", indiaExpiry:"2031-2034", usRev:"$1.6B",      globalRev:"$2.3B"     },
+  { id:30, name:"Humira (Biosimilars)",  company:"Various",                 segment:"immunology",     segLabel:"Immunology/TNF",   tagCls:"tag-immuno",  usExpiry:"2030-2034", indiaExpiry:"2028-2030", usRev:"$2.5-3.0B",  globalRev:"$4.54B"    },
+  { id:31, name:"Eylea",                 company:"Regeneron / Bayer",       segment:"ophthalmology",  segLabel:"Ophthalmology",    tagCls:"tag-ophthal", usExpiry:"2027",      indiaExpiry:"2027",      usRev:"$4.39B",     globalRev:"$7.5-8.0B" },
+  { id:32, name:"Januvia",               company:"Merck",                   segment:"diabetes",       segLabel:"Diabetes/DPP-4",   tagCls:"tag-diabetes",usExpiry:"2026",      indiaExpiry:"2026",      usRev:"$1.27B",     globalRev:"$2.2-2.5B" },
+  { id:33, name:"Janumet / Janumet XR",  company:"Merck",                   segment:"diabetes",       segLabel:"Diabetes",         tagCls:"tag-diabetes",usExpiry:"2026",      indiaExpiry:"2026",      usRev:"$1.0-1.2B",  globalRev:"$2.2-2.5B" },
+  { id:34, name:"Xeljanz",               company:"Pfizer",                  segment:"immunology",     segLabel:"Immunology/JAK",   tagCls:"tag-immuno",  usExpiry:"2026",      indiaExpiry:"2026",      usRev:"$750M",      globalRev:"$1.09B"    },
+  { id:35, name:"Arestin",               company:"OraPharma",               segment:"other",          segLabel:"Dental",           tagCls:"tag-dental",  usExpiry:"2032-2034", indiaExpiry:"2032-2034", usRev:"$95-110M",   globalRev:"$110-130M" },
+  { id:36, name:"Lynparza",              company:"AstraZeneca / Merck",     segment:"oncology",       segLabel:"Oncology/PARP",    tagCls:"tag-onco",    usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$1.35B",     globalRev:"$3.1B"     },
+  { id:37, name:"Calquence",             company:"AstraZeneca",             segment:"oncology",       segLabel:"Oncology/BTK",     tagCls:"tag-onco",    usExpiry:"2032-2034", indiaExpiry:"2032-2034", usRev:"$2.0-2.2B",  globalRev:"$3.0-3.2B" },
+  { id:38, name:"Vyndaqel / Vyndamax",   company:"Pfizer",                  segment:"cardiovascular", segLabel:"Cardiometabolic",  tagCls:"tag-cardio",  usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$4-5B",      globalRev:"$6.38B"    },
+  { id:39, name:"Nucala",                company:"GSK",                     segment:"other",          segLabel:"Respiratory",      tagCls:"tag-rare",    usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$1.6-2.0B",  globalRev:"$2.6B"     },
+  { id:40, name:"Tysabri",               company:"Biogen / J&J",            segment:"neurology",      segLabel:"Neurology/MS",     tagCls:"tag-neuro",   usExpiry:"2029-2033", indiaExpiry:"2029-2033", usRev:"$1.05B",     globalRev:"$1.85B"    },
+  { id:41, name:"Stelara",               company:"J&J",                     segment:"immunology",     segLabel:"Immunology/IL-23", tagCls:"tag-immuno",  usExpiry:"2025-2026", indiaExpiry:"2025-2026", usRev:"$4-4.5B",    globalRev:"$6.08B"    },
+  { id:42, name:"Tremfya",               company:"J&J",                     segment:"immunology",     segLabel:"Immunology/IL-23", tagCls:"tag-immuno",  usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$7-8B",      globalRev:"$10-11B"   },
+  { id:43, name:"Cyramza",               company:"Eli Lilly",               segment:"oncology",       segLabel:"Oncology/VEGFR",   tagCls:"tag-onco",    usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$380-400M",  globalRev:"$940-960M" },
+  { id:44, name:"Lenvima",               company:"Eisai / Merck",           segment:"oncology",       segLabel:"Oncology/MKI",     tagCls:"tag-onco",    usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$1.5-1.7B",  globalRev:"$4.2B"     },
+  { id:45, name:"Kisqali",               company:"Novartis",                segment:"oncology",       segLabel:"Oncology/BC",      tagCls:"tag-onco",    usExpiry:"2031-2034", indiaExpiry:"2031-2034", usRev:"$2.8-3.3B",  globalRev:"$4.8B"     },
+  { id:46, name:"Vabysmo",               company:"Roche",                   segment:"ophthalmology",  segLabel:"Ophthalmology",    tagCls:"tag-ophthal", usExpiry:"2034",      indiaExpiry:"2034",      usRev:"$3.68B",     globalRev:"$5.2B"     },
+  { id:47, name:"Leqembi",               company:"Eisai / Biogen",          segment:"neurology",      segLabel:"Neurology/AD",     tagCls:"tag-neuro",   usExpiry:"2034",      indiaExpiry:"2034",      usRev:"$281-303M",  globalRev:"$554.6M"   },
+  { id:48, name:"Mounjaro",              company:"Eli Lilly",               segment:"diabetes",       segLabel:"Diabetes/Obesity", tagCls:"tag-diabetes",usExpiry:"2036",      indiaExpiry:"2035-2038", usRev:"$13.65B",    globalRev:"$22.97B"   },
+  { id:49, name:"Trulance / Late-cycle", company:"Various",                 segment:"other",          segLabel:"GI / Niche",       tagCls:"tag-gi",      usExpiry:"2030-2034", indiaExpiry:"2030-2034", usRev:"$300-400M",  globalRev:"$350-450M" },
+];
+
+function getExpiryClass(expiry) {
+  const start = parseInt(expiry.split('-')[0]);
+  if (start <= 2026) return 'expiry-near';
+  if (start <= 2028) return 'expiry-mid';
+  return 'expiry-far';
+}
+
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderStats() {
+  const near = drugs.filter(d => parseInt(d.usExpiry.split('-')[0]) <= 2027).length;
+  const mid  = drugs.filter(d => { const s=parseInt(d.usExpiry.split('-')[0]); return s>=2028&&s<=2030; }).length;
+  const far  = drugs.filter(d => parseInt(d.usExpiry.split('-')[0]) >= 2031).length;
+  const onco = drugs.filter(d => d.segment === 'oncology').length;
+  document.getElementById('stat-near').textContent = near;
+  document.getElementById('stat-mid').textContent  = mid;
+  document.getElementById('stat-far').textContent  = far;
+  document.getElementById('stat-onco').textContent = onco;
+}
+
+function renderDrugs() {
+  const list = document.getElementById('drug-list');
+  const filtered = drugs.filter(d => {
+    const matchFilter = currentFilter === 'all' || d.segment === currentFilter;
+    const q = currentSearch.toLowerCase();
+    const matchSearch = !q ||
+      d.name.toLowerCase().includes(q) ||
+      d.company.toLowerCase().includes(q) ||
+      d.segment.toLowerCase().includes(q) ||
+      d.segLabel.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">No drugs match your search.</div>`;
+    document.getElementById('result-count').textContent = 'No results';
+    return;
+  }
+
+  document.getElementById('result-count').textContent = `Showing ${filtered.length} of 49 drugs`;
+
+  list.innerHTML = filtered.map((d, i) => `
+    <div class="drug-row" style="animation: fadeUp 0.3s ${i * 0.025}s ease both;">
+      <div>
+        <div class="drug-name">${d.name}</div>
+        <div class="drug-company">${d.company}</div>
+      </div>
+      <div class="company-name col-company">${d.company}</div>
+      <div class="col-segment"><span class="therapy-tag ${d.tagCls}">${d.segLabel}</span></div>
+      <div class="expiry-year ${getExpiryClass(d.usExpiry)}">${d.usExpiry}</div>
+      <div class="muted-val col-india">${d.indiaExpiry}</div>
+      <div class="revenue-val">${d.usRev}</div>
+      <div class="revenue-val col-global" style="color:var(--accent3)">${d.globalRev}</div>
+    </div>`).join('');
+}
+
+function filterDrugs(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDrugs();
+}
+
+function searchDrugs(val) {
+  currentSearch = val;
+  renderDrugs();
+}
+
+function renderTimeline() {
+  const years = {};
+  drugs.forEach(d => {
+    const yr = parseInt(d.usExpiry.split('-')[0]);
+    if (!years[yr]) years[yr] = [];
+    years[yr].push(d);
+  });
+
+  const grid = document.getElementById('timeline-grid');
+  grid.innerHTML = Object.keys(years).sort((a,b)=>a-b).map(yr => {
+    const list = years[yr];
+    const cls = yr <= 2026 ? 'expiry-near' : yr <= 2028 ? 'expiry-mid' : 'expiry-far';
+    const total = list.reduce((s,d) => {
+      const m = d.usRev.replace(/[^0-9.]/g,'');
+      const n = parseFloat(m);
+      return s + (isNaN(n)?0:n);
+    }, 0);
+    return `
+    <div class="year-block">
+      <div class="year-label ${cls}">${yr}</div>
+      ${list.map(d => `
+        <div class="year-drug-item">
+          <span class="year-drug-name" title="${d.name}">${d.name}</span>
+          <span style="color:var(--accent);white-space:nowrap;">${d.usRev}</span>
+        </div>
+      `).join('')}
+      <div class="year-total">~$${total.toFixed(1)}B US at risk</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCompanyExposure() {
+  const companies = [
+    { name:"Pfizer",       note:"Ibrance, Xtandi, Xarelto, Prevnar cliff 2026-2027", drugs:"Ibrance, Xtandi, Xarelto", pct:58, fill:"risk-fill-high", valColor:"var(--red)"    },
+    { name:"Merck & Co.",  note:"Keytruda dominating but 2028 cliff approaching",     drugs:"Keytruda ($18.8B US), Gardasil, Januvia", pct:45, fill:"risk-fill-high", valColor:"var(--yellow)" },
+    { name:"J&J",          note:"Stelara biosimilar era 2025; Tremfya growing",       drugs:"Stelara, Xarelto, Darzalex", pct:40, fill:"risk-fill-med",  valColor:"var(--yellow)" },
+    { name:"AbbVie",       note:"Skyrizi + Rinvoq offset Humira cliff; low risk",     drugs:"Skyrizi, Rinvoq (2032+)", pct:22, fill:"risk-fill-low",  valColor:"var(--green)"  },
+    { name:"Novartis",     note:"Entresto 2025-26 + Cosentyx shifting",               drugs:"Entresto, Cosentyx, Kisqali", pct:38, fill:"risk-fill-med",  valColor:"var(--yellow)" },
+    { name:"Eli Lilly",    note:"Mounjaro/Trulicity offset; Mounjaro 2036 patent",    drugs:"Mounjaro ($22.97B), Taltz, Cyramza", pct:18, fill:"risk-fill-low",  valColor:"var(--green)"  },
+    { name:"Novo Nordisk", note:"Ozempic US patent until 2033; India already open",   drugs:"Ozempic ($18-19B global)", pct:15, fill:"risk-fill-low",  valColor:"var(--green)"  },
+    { name:"AstraZeneca",  note:"Farxiga 2025-26 cliff; Tagrisso/Calquence protected",drugs:"Farxiga (critical), Tagrisso (safe)", pct:30, fill:"risk-fill-med",  valColor:"var(--yellow)" },
+    { name:"BMS",          note:"Eliquis 2027 cliff (shared with Pfizer); Opdivo 2028",drugs:"Eliquis $14.4B, Opdivo $9.23B", pct:52, fill:"risk-fill-high", valColor:"var(--red)"    },
+    { name:"Roche",        note:"Ocrevus 2026-27 off; Vabysmo protected till 2034",   drugs:"Ocrevus (near), Vabysmo (safe)", pct:35, fill:"risk-fill-med",  valColor:"var(--yellow)" },
+    { name:"Amgen",        note:"Prolia 2025-26 biosimilar exposure; Repatha safe",   drugs:"Prolia (critical), Repatha (2029)", pct:42, fill:"risk-fill-high", valColor:"var(--yellow)" },
+    { name:"Gilead",       note:"Biktarvy well-protected 2031+; Genvoya 2029",        drugs:"Biktarvy ($14.3B), Genvoya", pct:12, fill:"risk-fill-low",  valColor:"var(--green)"  },
+  ];
+
+  const grid = document.getElementById('risk-grid');
+  grid.innerHTML = companies.map(c => `
+  <div class="risk-card">
+    <div class="risk-company">${c.name}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${c.note}</div>
+    <div class="risk-pct-row">
+      <div class="risk-pct-bar-bg"><div class="risk-pct-fill ${c.fill}" style="width:${c.pct}%"></div></div>
+      <div class="risk-pct-value" style="color:${c.valColor}">${c.pct}%</div>
+    </div>
+    <div class="risk-drugs">Key drugs: <span>${c.drugs}</span></div>
+  </div>`).join('');
+}
+
+// Add result count element
+const tableWrapper = document.querySelector('.table-wrapper');
+const countDiv = document.createElement('div');
+countDiv.id = 'result-count';
+countDiv.className = 'result-count';
+countDiv.textContent = 'Showing 49 of 49 drugs';
+tableWrapper.insertBefore(countDiv, tableWrapper.firstChild);
+
+renderStats();
+renderDrugs();
+renderTimeline();
+renderCompanyExposure();
+</script>
+</body>
+</html>
